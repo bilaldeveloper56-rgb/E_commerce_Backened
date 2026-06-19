@@ -21,7 +21,7 @@ const allowedOrigins = [
   "http://localhost:5174",
   "http://127.0.0.1:5174",
 ];
-
+ 
 // Add production frontend URL from environment variable (set this on Vercel)
 if (process.env.FRONTEND_URL) {
   allowedOrigins.push(process.env.FRONTEND_URL);
@@ -34,6 +34,15 @@ app.use(
   }),
 );
 app.use(express.json());
+
+// Root route handler for deployment verification and health check
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "success",
+    message: "Backend API Server is running successfully!",
+  });
+});
+
 app.use("/api", allroutes);
 app.use(errorHandler);
 
@@ -41,3 +50,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+export default app;

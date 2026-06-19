@@ -1,5 +1,7 @@
 import { Order } from "../models/Order.js";
 import { Product } from "../models/Product.js";
+import { Notification } from "../models/Notification.js";
+import { User } from "../models/User.js";
 
 // @desc    Create new order
 // @route   POST /api/order/create
@@ -26,6 +28,19 @@ export const createOrder = async (req, res) => {
     });
 
     const createdOrder = await order.save();
+
+    // Notify all admins that a new order was placed
+    try {
+      await Notification.create({
+        recipientRole: "admin",
+        message: `New order placed by ${req.user.name || "a user"} — $${totalPrice.toFixed(2)} total`,
+        type: "new_order",
+        orderId: createdOrder._id,
+      });
+    } catch (notifErr) {
+      // Non-fatal — order still created successfully
+      console.error("Failed to create admin notification:", notifErr.message);
+    }
 
     res.status(201).json({ success: true, data: createdOrder });
   } catch (error) {
@@ -87,6 +102,25 @@ export const confirmOrderAdmin = async (req, res) => {
 
     order.status = "Confirmed";
     const updatedOrder = await order.save();
+
+    // Notify the user that their order has been confirmed
+    try {
+      // Build a readable item summary (first 2 items)
+      const itemNames = order.items
+        .slice(0, 2)
+        .map((i) => i.title)
+        .join(", ");
+      const extra = order.items.length > 2 ? ` +${order.items.length - 2} more` : "";
+      await Notification.create({
+        recipient: order.user,
+        recipientRole: "user",
+        message: `Your order for ${itemNames}${extra} has been confirmed! 🎉`,
+        type: "order_confirmed",
+        orderId: updatedOrder._id,
+      });
+    } catch (notifErr) {
+      console.error("Failed to create user notification:", notifErr.message);
+    }
 
     res.status(200).json({ success: true, data: updatedOrder });
   } catch (error) {
