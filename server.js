@@ -24,7 +24,8 @@ const allowedOrigins = [
  
 // Add production frontend URL from environment variable (set this on Vercel)
 if (process.env.FRONTEND_URL) {
-  allowedOrigins.push(process.env.FRONTEND_URL);
+  const origin = process.env.FRONTEND_URL.replace(/\/$/, "");
+  allowedOrigins.push(origin);
 }
 
 app.use(
